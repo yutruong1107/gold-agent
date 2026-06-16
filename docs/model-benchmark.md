@@ -44,13 +44,31 @@ Tài liệu này ghi lại quá trình **đánh giá thực nghiệm** các mô 
 - **Không redeploy trong kỳ vote:** model phải được chốt và kiểm thử kỹ **trước** giai đoạn chấm.
 - **`reasoning_effort`** chỉ áp dụng cho model suy luận (GPT‑5); Gemma bỏ qua tham số này, Gemini không cho điều chỉnh.
 
-## 5. Kết luận
+## 5. Load test đồng thời (mô phỏng vote)
 
-- Mặc định an toàn, nhanh, đã kiểm chứng: **Gemma 4 31B‑IT**.
-- Nâng cấp chất lượng mà giữ tốc độ: **GPT‑5 với `reasoning_effort=minimal`** — chất lượng model đầu bảng ở độ trễ ~3s, output sạch.
-- **Không phù hợp** cho tác vụ realtime ngắn này: GPT‑5 `medium`/`low` và Gemini 3.1 Pro (quá chậm / không điều chỉnh được suy luận).
+Đo đơn luồng đẹp chưa đủ — phép thử thật là **nhiều người vote cùng lúc** trên gateway dùng chung. Mỗi "wave" dùng `threading.Barrier` để C request bắn gần như đồng thời; prompt vary mỗi request để tránh cache.
 
-## 6. Tái lập
+| Cấu hình | Concurrency | OK | Lỗi | p95 latency | Output sạch |
+|---|---|---|---|---|---|
+| **Gemma 4 31B** | 20 (×2 vòng) | **40/40** | 0 | 3,38s | 40/40 |
+| GPT‑5 `minimal` | 10 (×2 vòng) | 10/20 | **10× HTTP 429** | 3,78s | 10/10 |
+| GPT‑5 `minimal` | 20 (×2 vòng) | **0/40** | **40× HTTP 429** | — | — |
+| GPT‑5 `minimal` | 40 (×1 vòng) | **0/40** | **40× HTTP 429** | — | — |
+
+→ **GPT‑5 bị rate‑limit rất gắt** (`AI rate limit exceeded`): latency đơn luồng tốt (~3s) nhưng **trần throughput thấp** — fail ngay ở concurrency 10, **chết hẳn ở 20+**. Đây đúng là kịch bản ~600 người vote đồng thời. Ngược lại **Gemma xử lý concurrency 20 mượt** (40/40, p95 3,4s, không lỗi).
+
+## 6. Kết luận & quyết định
+
+**Production chọn `google/gemma-4-31b-it`.** Căn cứ:
+- Nhanh (~2s), output sạch, đã chạy ổn định nhiều ngày trong app.
+- **Trụ tốt dưới tải đồng thời** (40/40 @ concurrency 20) — yếu tố quyết định cho kỳ vote.
+- GPT‑5 `minimal` chất lượng cao + nhanh khi đơn luồng, **nhưng rate‑limit khiến nó sập dưới tải** → không phù hợp khi đông người + **không sửa được trong kỳ vote**.
+- GPT‑5 `medium`/`low` và Gemini 3.1 Pro: quá chậm (vượt `timeout=18s`).
+- `rule_insight` (fallback không cần LLM) đảm bảo app không vỡ ở các đỉnh tải.
+
+> Quyết định dựa trên **đo thực nghiệm**, không cảm tính. Nếu sau này có hạn mức (rate limit) cao hơn cho GPT‑5, có thể đánh giá lại — code đã tách model qua biến môi trường để đổi không cần sửa logic.
+
+## 7. Tái lập
 
 ```python
 import os, time
