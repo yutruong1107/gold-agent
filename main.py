@@ -953,9 +953,9 @@ def _summary_from(holdings: list) -> dict:
     return summ
 
 
-def _portfolio_summary(user: str) -> dict:
-    # Dùng cho đọc (pf_list): tải từ Memory
-    return _summary_from(pf_load(user))
+def _portfolio_summary(key: str) -> dict:
+    # Dùng cho đọc (pf_list): tải từ Memory theo khóa lưu trữ (uid hoặc tên)
+    return _summary_from(pf_load(key))
 
 
 def _next_id(holdings: list) -> str:
@@ -972,10 +972,13 @@ def _next_id(holdings: list) -> str:
 def handler(payload: dict, context: RequestContext) -> dict:
     action = (payload.get("action") or "").lower()
     user = payload.get("user") or (getattr(context, "user_id", None) or "guest")
+    # Khóa lưu trữ danh mục = uid theo trình duyệt (tránh trùng tên → đè portfolio của nhau).
+    # Fallback về tên nếu client cũ chưa gửi uid. `user` (tên) vẫn dùng để cá nhân hóa AI.
+    pf_key = payload.get("uid") or user
 
     # ----- Portfolio actions (Gold Wealth Companion) -----
     if action == "pf_list":
-        return {"status": "success", "ai_disclosure": True, **_portfolio_summary(user)}
+        return {"status": "success", "ai_disclosure": True, **_portfolio_summary(pf_key)}
 
     if action == "pf_add":
         h = payload.get("holding") or {}
@@ -991,31 +994,31 @@ def handler(payload: dict, context: RequestContext) -> dict:
                 break
         if not (10 <= bp <= 1000):
             return {"status": "error", "message": "Giá mua không hợp lệ (cần theo triệu đồng/lượng, vd 150)."}
-        holdings = pf_load(user)
+        holdings = pf_load(pf_key)
         h["id"] = _next_id(holdings)
         holdings.append({
             "id": h["id"], "type": h.get("type", "sjc"),
             "qty": float(h.get("qty", 0) or 0), "buy_price": bp,
             "buy_date": h.get("buy_date", ""),
         })
-        pf_save(user, holdings)
+        pf_save(pf_key, holdings)
         return {"status": "success", **_summary_from(holdings)}
 
     if action == "pf_delete":
         hid = str(payload.get("id", ""))
-        holdings = [h for h in pf_load(user) if str(h.get("id")) != hid]
-        pf_save(user, holdings)
+        holdings = [h for h in pf_load(pf_key) if str(h.get("id")) != hid]
+        pf_save(pf_key, holdings)
         return {"status": "success", **_summary_from(holdings)}
 
     if action == "pf_clear":
-        pf_save(user, [])
+        pf_save(pf_key, [])
         return {"status": "success", **_summary_from([])}
 
     if action == "pf_sell":
         typ = payload.get("type", "")
         sell_qty = float(payload.get("qty", 0) or 0)
         out, remain = [], sell_qty
-        for h in pf_load(user):
+        for h in pf_load(pf_key):
             if h.get("type") == typ and remain > 0:
                 hq = float(h.get("qty", 0))
                 if hq <= remain + 1e-9:
@@ -1025,7 +1028,7 @@ def handler(payload: dict, context: RequestContext) -> dict:
                 h["qty"] = round(hq - remain, 4)
                 remain = 0
             out.append(h)
-        pf_save(user, out)
+        pf_save(pf_key, out)
         return {"status": "success", **_summary_from(out)}
 
     if action == "pf_seed_demo":
@@ -1034,7 +1037,7 @@ def handler(payload: dict, context: RequestContext) -> dict:
             {"id": "2", "type": "nhan", "qty": 1, "buy_price": 139.0, "buy_date": "2026-04-20"},
             {"id": "3", "type": "nutrang", "qty": 1, "buy_price": 148.0, "buy_date": "2026-05-20"},
         ]
-        pf_save(user, demo)
+        pf_save(pf_key, demo)
         return {"status": "success", **_summary_from(demo)}
 
     if action == "market_data":
@@ -1042,7 +1045,7 @@ def handler(payload: dict, context: RequestContext) -> dict:
 
     if action in ("ai_insight", "chat"):
         raw = payload.get("holdings")
-        summ = _summary_from(raw) if isinstance(raw, list) else _portfolio_summary(user)
+        summ = _summary_from(raw) if isinstance(raw, list) else _portfolio_summary(pf_key)
         q = payload.get("message", "") if action == "chat" else ""
         uname = str(user) if (user and str(user).lower() != "guest") else "bạn"
         arts = fetch_gold_news_diverse(3)
@@ -1305,7 +1308,8 @@ function openName(){document.getElementById('user').value=getUser();document.get
 function closeName(){document.getElementById('nameModal').classList.remove('open');}
 function saveUser(){var u=document.getElementById('user').value.trim();if(u){localStorage.setItem('gc_user',u);closeName();load();}}
 function updProfileChip(){var u=getUser(),el=document.getElementById('profileChip');if(el)el.textContent=u?('👤 '+u):'👤 Nhập tên';}
-async function api(body){body.user=getUser()||'guest';const r=await fetch('/invocations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json();}
+function getUid(){var u=localStorage.getItem('gc_uid');if(!u){u=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('u-'+Date.now().toString(16)+'-'+Math.random().toString(16).slice(2,10));localStorage.setItem('gc_uid',u);}return u;}
+async function api(body){body.user=getUser()||'guest';body.uid=getUid();const r=await fetch('/invocations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json();}
 function cls(v){return v>0?'pnl-pos':(v<0?'pnl-neg':'pnl-flat');}
 function pct(v,d){return Math.abs(v||0).toFixed(d).replace('.',',');}
 function setIns(html){document.getElementById('insight').innerHTML='<span class="who">🤖 Aurum</span>'+html;}

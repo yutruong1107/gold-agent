@@ -38,3 +38,4 @@ report.json
 resp.json
 s.json
 .claude/
+.deploy_image.txt
