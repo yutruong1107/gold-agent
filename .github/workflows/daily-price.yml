@@ -1,0 +1,22 @@
+name: daily-gold-price
+
+# Cron độc lập (chạy trên hạ tầng GitHub Actions, không phụ thuộc máy cá nhân).
+# Mỗi ngày gọi endpoint AgentBase để agent ghi giá vàng hôm nay vào Memory.
+# Không cần secret: endpoint public, runtime tự inject GreenNode creds.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC = 09:00 giờ Việt Nam (Asia/Ho_Chi_Minh)
+  workflow_dispatch:        # cho phép chạy tay để kiểm tra
+
+jobs:
+  record-price:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gọi endpoint ghi giá vàng hôm nay
+        run: |
+          curl -sS -X POST \
+            "https://endpoint-e4155b14-9988-458d-8c2f-45fb9d795062.agentbase-runtime.aiplatform.vngcloud.vn/invocations" \
+            -H "Content-Type: application/json" \
+            -d '{"format":"json"}' \
+            --max-time 90
