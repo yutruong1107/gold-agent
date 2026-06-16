@@ -88,7 +88,7 @@ flowchart TB
 
 - **Nền tảng:** GreenNode AgentBase (Custom Agent runtime, Docker)
 - **SDK:** `greennode-agentbase` (HTTP server, port 8080)
-- **LLM:** `google/gemma-4-31b-it` qua GreenNode AI Platform (MaaS) — có fallback rule-based khi LLM lỗi · [benchmark chọn model →](docs/model-benchmark.md)
+- **LLM:** `google/gemma-4-31b-it` qua GreenNode AI Platform (MaaS) — có fallback rule-based khi LLM lỗi. Chọn sau khi **benchmark 10 model** trên 3 tiêu chí — chất lượng, **tải đồng thời**, **reasoning khi chat**: Gemma thắng nhờ nhanh (~1–2s) + trụ được concurrency (40/40 @ C=20) + reasoning đúng; GPT‑5/Gemini chất lượng cao nhưng dính rate‑limit / quá chậm. [Chi tiết & số liệu →](docs/model-benchmark.md)
 - **Lưu trữ:** AgentBase Memory (events) — danh mục per-user + lịch sử giá
 - **Nguồn dữ liệu thật:** BTMC API (giá vàng VN), gold-api.com (XAU spot), open.er-api.com (USD/VND), Google News RSS + VnExpress (tin tức)
 - **Endpoints:** `GET /` (companion app) · `GET /market` (biểu đồ) · `GET /data.json` (RAG JSON) · `POST /invocations` (API actions) · `GET /health`

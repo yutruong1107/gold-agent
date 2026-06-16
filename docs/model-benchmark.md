@@ -57,18 +57,38 @@ Tài liệu này ghi lại quá trình **đánh giá thực nghiệm** các mô 
 
 → **GPT‑5 bị rate‑limit rất gắt** (`AI rate limit exceeded`): latency đơn luồng tốt (~3s) nhưng **trần throughput thấp** — fail ngay ở concurrency 10, **chết hẳn ở 20+**. Đây đúng là kịch bản ~600 người vote đồng thời. Ngược lại **Gemma xử lý concurrency 20 mượt** (40/40, p95 3,4s, không lỗi).
 
-## 6. Kết luận & quyết định
+## 6. Reasoning khi end-user chat hỏi đáp — toàn bộ 10 model
+
+Ngoài insight mặc định, app có **chat hỏi đáp** — đòi hỏi **suy luận** từ danh mục + vĩ mô. Test 3 câu hỏi thật (gọi tuần tự, đúng prompt chat của app): *"nữ trang lỗ có nên bán dồn SJC?"*, *"vì sao nhẫn lãi ít hơn SJC?"*, *"Fed tăng lãi suất ảnh hưởng vàng thế nào?"*
+
+| Model | Latency (chat) | Reasoning đúng? | Ghi chú |
+|---|---|---|---|
+| **Gemma 4 31B** | **0,7–1,3s** | ✅ cả 3 | Nhanh nhất, logic đúng, sạch |
+| Gemma 3 27B | 4–6s | ✅ | Đôi lúc lặp số tổng máy móc |
+| Qwen 3.5 27B | 52–57s | ❌ | **EMPTY** — dump reasoning, `finish=length` |
+| Qwen 3.7 Plus | 27–45s | ✅ | Rất chậm |
+| DeepSeek V4 Flash | 5–7s | ✅ | Chi tiết nhất (nêu spread %), chậm hơn Gemma ~5× |
+| DeepSeek V4 Pro | 12–21s | ✅ | Tốt nhưng chậm |
+| MiniMax M2.5 | 7–15s | ✅ | Tốt |
+| Nemotron 3 Nano 30B | 65s / lỗi | ⚠️ | connection/500 error, lẫn tiếng nước ngoài ("bajo") |
+| Gemini 3.1 Pro | 15–16s | ✅ | Chậm, không chỉnh được effort |
+| **GPT‑5** (minimal & medium) | — | — | **429 rate limit toàn bộ** (kể cả gọi tuần tự) |
+
+**Kết luận reasoning:** mọi model chạy được đều **suy luận đúng logic tài chính** (Fed → áp lực giảm vàng; nữ trang lỗ do spread + phí gia công; không khuyên bán cắt lỗ vội). → **Chất lượng reasoning cho tác vụ này KHÔNG cần model frontier/chuyên reasoning.** Trái lại, các model "reasoning" chuyên (Qwen 3.5, Nemotron) lại **lỗi/empty**, còn các model chậm (Gemini, Qwen 3.7, DeepSeek Pro) tốn 12–45s mà không hơn về độ đúng. **Gemma 4 31B đúng cả 3 câu và nhanh nhất.** (DeepSeek V4 Flash là phương án "trả lời chi tiết hơn" đáng cân nhắc nếu cần, nhưng chậm hơn ~5× và chưa kiểm thử dưới tải.)
+
+## 7. Kết luận & quyết định
 
 **Production chọn `google/gemma-4-31b-it`.** Căn cứ:
 - Nhanh (~2s), output sạch, đã chạy ổn định nhiều ngày trong app.
 - **Trụ tốt dưới tải đồng thời** (40/40 @ concurrency 20) — yếu tố quyết định cho kỳ vote.
+- **Reasoning chat đúng cả 3 câu hỏi end-user** và nhanh nhất trong 10 model — model frontier/chuyên reasoning không cho lợi thế về độ đúng cho tác vụ này.
 - GPT‑5 `minimal` chất lượng cao + nhanh khi đơn luồng, **nhưng rate‑limit khiến nó sập dưới tải** → không phù hợp khi đông người + **không sửa được trong kỳ vote**.
 - GPT‑5 `medium`/`low` và Gemini 3.1 Pro: quá chậm (vượt `timeout=18s`).
 - `rule_insight` (fallback không cần LLM) đảm bảo app không vỡ ở các đỉnh tải.
 
 > Quyết định dựa trên **đo thực nghiệm**, không cảm tính. Nếu sau này có hạn mức (rate limit) cao hơn cho GPT‑5, có thể đánh giá lại — code đã tách model qua biến môi trường để đổi không cần sửa logic.
 
-## 7. Tái lập
+## 8. Tái lập
 
 ```python
 import os, time
