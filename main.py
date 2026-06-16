@@ -4,7 +4,7 @@ import html
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
 
@@ -713,6 +713,20 @@ def _fmt(v):
     return f"{v:,.1f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def _fmt_pubdate(s):
+    """RSS pubDate 'Tue, 16 Jun 2026 09:31:00 GMT' -> 'DD/MM · HH:MM' theo giờ VN (UTC+7)."""
+    if not s:
+        return ""
+    try:
+        from email.utils import parsedate_to_datetime
+        dt = parsedate_to_datetime(s)
+        if dt.tzinfo:
+            dt = dt.astimezone(timezone(timedelta(hours=7)))
+        return dt.strftime("%d/%m · %H:%M")
+    except Exception:
+        return s
+
+
 def render_html(series, stats, news, meta):
     now = datetime.now().strftime("%H:%M %d/%m/%Y")
     live = meta.get("live_ok")
@@ -750,7 +764,7 @@ def render_html(series, stats, news, meta):
     for i, a in enumerate(news, 1):
         news_items += f"""<a class="news" href="{html.escape(a['link'])}" target="_blank" rel="noopener">
           <span class="num">{i}</span><span class="ntext"><span class="ntitle">{html.escape(a['title'])}</span>
-          <span class="nmeta">{html.escape(a.get('source',''))} · {html.escape(a.get('published',''))}</span></span></a>"""
+          <span class="nmeta">{html.escape(a.get('source',''))} · {html.escape(_fmt_pubdate(a.get('published','')))}</span></span></a>"""
 
     # Badge tin cậy: agent tự đối chiếu giá SJC với nguồn độc lập VnExpress (1 dòng, gọn cho end user)
     vnx = meta.get("vnx") or {}
@@ -759,8 +773,12 @@ def render_html(series, stats, news, meta):
     if sjc_ours and vnx_sjc:
         pct = abs(vnx_sjc - sjc_ours) / sjc_ours * 100
         ok = pct <= 1.5
-        msg = (f"Giá SJC khớp nguồn độc lập VnExpress (lệch {_vnfmt(pct,1)}%)" if ok
-               else f"Giá SJC chênh {_vnfmt(pct,1)}% so với VnExpress — nên đối chiếu thêm")
+        p1 = _vnfmt(pct, 1)
+        if ok:
+            msg = ("Giá SJC khớp nguồn độc lập VnExpress" if p1 == "0,0"
+                   else f"Giá SJC khớp nguồn độc lập VnExpress (lệch {p1}%)")
+        else:
+            msg = f"Giá SJC chênh {p1}% so với VnExpress — nên đối chiếu thêm"
         link = (f' · <a href="{html.escape(vnx["url"])}" target="_blank" rel="noopener" class="vnxlink">Xem bài</a>'
                 if vnx.get("url") else "")
         xcheck = (f'<div class="xbadge {"ok" if ok else "warn"}"><span class="xb-ic">{"✓" if ok else "⚠"}</span>'
@@ -788,7 +806,7 @@ h1{{font-size:22px;margin:0 0 4px}} .sub{{color:#9aa0ad;font-size:13px;margin-bo
 .dod{{font-size:13px;font-weight:600;margin-top:8px}}
 .dod span{{color:#7a8088;font-weight:400;font-size:11px}}
 .dod.up{{color:#3fa66a}} .dod.down{{color:#f87171}} .dod.muted{{color:#7a8088;font-weight:400}}
-.charts{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}
+.charts{{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}}
 @media(max-width:720px){{.charts{{grid-template-columns:1fr}}}}
 @media(max-width:560px){{body{{padding:14px}} .pval{{font-size:24px}} .pcard{{min-width:0}}}}
 .card{{background:#171a21;border:1px solid #242832;border-radius:14px;padding:18px}}
@@ -845,6 +863,7 @@ h2{{font-size:15px;margin:0 0 12px;color:#cdd2db}}
 <div class="disc">{src_note}{spot_txt}Các điểm trước hôm nay là ước tính nội suy từ diễn biến thị trường, sẽ được thay bằng số liệu thật khi agent chạy mỗi ngày. Hover để xem giá trị tại từng điểm.</div>
 {xcheck}
 <div class="card" style="margin-top:18px"><h2><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.4" width="9" height="9.2" rx="1"/><path d="M5.2 6h4.6M5.2 8h4.6M5.2 10h3"/></svg> Tin tức nổi bật trong ngày</h2>{news_items}</div>
+<div class="disc" style="text-align:center;margin:18px 0 0">Giá tham khảo từ BTMC (SJC, nhẫn, nữ trang), có thể chênh giữa các thương hiệu/cửa hàng; đa thương hiệu (PNJ, DOJI…) là hướng phát triển · Thông tin chỉ mang tính tham khảo, không phải lời khuyên đầu tư.</div>
 <div class="foot"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/></svg> Gold Companion · Powered by GreenNode AgentBase · <b>Developed by Yuna</b></div>
 </div>
 <script>
