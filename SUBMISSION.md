@@ -14,7 +14,7 @@
 
 **Phương án ngắn gọn hơn (~230 ký tự):**
 
-> Aurum giúp người giữ vàng biết tài sản đang LỜI/LỖ bao nhiêu — không chỉ xem giá. Agent tự lấy giá realtime, tính PnL/ROI, tổng hợp tin tức để tư vấn cá nhân hóa và đóng vòng giao dịch qua ZaloPay (giả lập). Đồng hành tài sản vàng mỗi ngày.
+> Aurum giúp người giữ vàng biết tài sản đang LỜI/LỖ bao nhiêu — không chỉ xem giá. Agent tự lấy giá realtime, tính PnL/ROI, tổng hợp tin tức để tư vấn cá nhân hóa và đóng vòng giao dịch qua Zalopay (giả lập). Đồng hành tài sản vàng mỗi ngày.
 
 ---
 
@@ -38,9 +38,9 @@
 - Hình: Aurum insight 2-3 câu; mở accordion **"Tin Aurum đang tham khảo (3)"** cho thấy 3 báo khác nhau; gõ 1 câu hỏi → Aurum trả lời theo danh mục.
 - Lời: "Aurum không chỉ đọc số — nó tự tổng hợp tin tức từ nhiều báo, đối chiếu với danh mục của bạn rồi đưa nhận định trấn an, cá nhân hóa. Đây là một AI agent thật sự tra cứu và suy luận."
 
-**[1:50–2:20] Đóng vòng hành động — ZaloPay**
-- Hình: bấm nút vàng "Tối ưu giá vốn…" → popup **ZaloPay (badge DEMO)**, tab Mua/Bán, auto-fill 0,1 lượng → "Thanh toán" → danh mục cập nhật.
-- Lời: "Từ tư vấn đến hành động chỉ một chạm: Đọc tin → Tư vấn → Quyết định → Thanh toán qua ZaloPay. *(Tính năng thanh toán là mô phỏng định hướng sản phẩm.)*"
+**[1:50–2:20] Đóng vòng hành động — Zalopay**
+- Hình: bấm nút vàng "Tối ưu giá vốn…" → popup **Zalopay (badge DEMO)**, tab Mua/Bán, auto-fill 0,1 lượng → "Thanh toán" → danh mục cập nhật.
+- Lời: "Từ tư vấn đến hành động chỉ một chạm: Đọc tin → Tư vấn → Quyết định → Thanh toán qua Zalopay. *(Tính năng thanh toán là mô phỏng định hướng sản phẩm.)*"
 
 **[2:20–2:40] Chốt**
 - Hình: logo Aurum + tagline.
