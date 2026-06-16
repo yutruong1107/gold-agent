@@ -510,11 +510,11 @@ def rule_insight(summary: dict) -> str:
     if not summary.get("rows"):
         return "Bạn chưa có khoản vàng nào. Thêm khoản đầu tiên để tôi theo dõi lời/lỗ giúp bạn mỗi ngày."
     if pnl > 0:
-        return (f"Danh mục đang LÃI {pnl:,.1f} triệu (+{roi:.1f}%). Bạn đang đi đúng hướng — "
-                f"vàng vốn là kênh giữ giá dài hạn, cứ giữ vững tâm lý.").replace(",", ".")
+        return (f"Danh mục đang lãi {_vnfmt(pnl,1)} triệu (+{_vnfmt(roi,1)}%). Bạn đang đi đúng hướng — "
+                f"vàng vốn là kênh giữ giá dài hạn, cứ giữ vững tâm lý.")
     if pnl < 0:
-        return (f"Danh mục tạm LỖ {abs(pnl):,.1f} triệu ({roi:.1f}%). Đừng lo — vàng biến động ngắn hạn là "
-                f"bình thường, giá trị dài hạn vẫn ổn định. Theo dõi thêm vài phiên trước khi quyết định.").replace(",", ".")
+        return (f"Danh mục tạm lỗ {_vnfmt(abs(pnl),1)} triệu ({_vnfmt(roi,1)}%). Đừng lo — vàng biến động ngắn hạn là "
+                f"bình thường, giá trị dài hạn vẫn ổn định. Theo dõi thêm vài phiên trước khi quyết định.")
     return "Danh mục đang hòa vốn. Tôi sẽ tiếp tục theo dõi và báo bạn khi có biến động đáng chú ý."
 
 
@@ -563,7 +563,8 @@ AI_SYSTEM = (
     "- Tiếng Việt, văn phong chuyên nghiệp, đáng tin cậy, định hướng chiến lược nhưng gần gũi, cá nhân hóa.\n"
     "- Dùng chữ 'M' viết hoa thay cho 'triệu đồng' (vd: 592,0M).\n"
     "- Dấu phẩy cho thập phân, dấu chấm cho hàng nghìn (vd: 3,32% ; 143,25M ; 1.036,0M). Số ROI/% khớp ĐÚNG 2 chữ số thập phân với bảng (vd 6,21%).\n"
-    "- Viết tiếng Việt CHUẨN CHÍNH TẢ tuyệt đối, đặt dấu thanh đúng (vd: 'rời khỏi', 'rơi'; KHÔNG viết sai thành 'rới').\n\n"
+    "- Viết tiếng Việt CHUẨN CHÍNH TẢ tuyệt đối, đặt dấu thanh đúng (vd: 'rời khỏi', 'rơi'; KHÔNG viết sai thành 'rới').\n"
+    "- Xưng hô: gọi user ĐÚNG theo user_name được cung cấp, KHÔNG tự thêm 'anh/chị/cô/chú' (không biết giới tính).\n\n"
     "TƯ DUY & ĐỘ DÀI (NGẮN GỌN, CLEAN):\n"
     "- Giới hạn TỐI ĐA 2-3 câu. Văn phong sang trọng, cô đọng.\n"
     "- TUYỆT ĐỐI KHÔNG liệt kê lại các số tĩnh đã có trên UI (số lượng lượng, giá mua/ROI TỪNG lệnh). Có thể nhắc 1 chỉ số tổng (ROI tổng) ở mức vĩ mô.\n"
@@ -571,10 +572,12 @@ AI_SYSTEM = (
     "- KHÔNG tự tính số mới. Nhận định mang tính tham khảo, KHÔNG dùng từ 'chắc chắn lãi/cam kết/đảm bảo lợi nhuận'.\n"
     "- LOGIC TÀI CHÍNH PHẢI ĐÚNG: căng thẳng/bất ổn địa chính trị leo thang → vàng TĂNG (kênh trú ẩn an toàn). KHÔNG được nói 'thỏa thuận hòa bình' làm vàng tăng. "
     "Khi nhắc yếu tố vĩ mô, dùng cụm trung tính như 'căng thẳng địa chính trị leo thang' hoặc 'bất ổn vĩ mô', tránh gán nhân-quả sai.\n"
-    "- Kết bằng 1 câu hỏi mở mời hành động.\n\n"
+    "- VỊ THẾ ĐANG LỖ: KHÔNG mặc định khuyên 'mua thêm/trung bình giá'. Trấn an + giải thích (vàng giữ giá dài hạn; nữ trang lỗ phần lớn do chênh lệch mua-bán & phí gia công, không phải mất giá). DCA chỉ nêu như lựa chọn CÓ ĐIỀU KIỆN kèm rủi ro; nếu tích sản nên ưu tiên SJC/nhẫn (spread thấp). KHÔNG hứa/ngụ ý chắc chắn hồi vốn.\n"
+    "- Kết bằng 1 câu NHẬN ĐỊNH/khuyến nghị ngắn — KHÔNG hỏi 'có/không' (người dùng sẽ chọn hành động: Giữ nguyên / Bán / Mua thêm qua các nút bên dưới).\n"
+    "- Nếu tin nhắn người dùng quá ngắn/mơ hồ ('có','ừ','ok','sao'...) không đủ ngữ cảnh → KHÔNG đoán; hỏi lại ngắn gọn họ muốn hướng nào: giữ nguyên, bán, hay mua thêm.\n\n"
     "MẪU ĐẦU RA KỲ VỌNG (đúng 2-3 câu):\n"
     "\"Chào [user], danh mục tổng của bạn đang tăng trưởng tốt (+[roi]%). Dù thị trường có rung lắc ngắn hạn do [tin tức chính], xu hướng dài hạn vẫn rất ổn định. "
-    "Bạn có muốn tối ưu giá vốn cho các lệnh đang tạm lỗ không?\""
+    "Với lệnh nữ trang đang tạm lỗ, ưu tiên theo dõi thêm vài phiên trước khi quyết định.\""
 )
 
 
@@ -698,41 +701,9 @@ def chart_dual(series):
     return f'''<svg viewBox="0 0 {W} {H}" width="100%" xmlns="http://www.w3.org/2000/svg">
       {grid}
       <polyline points="{pts('intl')}" fill="none" stroke="#5b9bd5" stroke-width="1.6" stroke-dasharray="4,3"/>
-      <polyline points="{pts('sjc')}" fill="none" stroke="#5b9bd5" stroke-width="2"/>
-      {dots('intl','#5b9bd5')}{dots('sjc','#5b9bd5')}
+      <polyline points="{pts('sjc')}" fill="none" stroke="#f5c542" stroke-width="2"/>
+      {dots('intl','#5b9bd5')}{dots('sjc','#f5c542')}
       {xlab}
-    </svg>'''
-
-
-def chart_premium(series):
-    W, H, padl, padr, padt, padb = 380, 240, 42, 12, 16, 28
-    n = len(series)
-    vals = [s["premium"] for s in series]
-    vmin, vmax = max(0, min(vals) - 4), max(vals) + 4
-    def y(v):
-        return _scale(v, vmin, vmax, H - padt - padb, 0) + padt
-    line = " ".join(f"{_xpos(i,n,W,padl,padr):.1f},{y(s['premium']):.1f}" for i, s in enumerate(series))
-    area = f"{padl},{y(vmin):.1f} " + line + f" {_xpos(n-1,n,W,padl,padr):.1f},{y(vmin):.1f}"
-    dots = "".join(f'<circle cx="{_xpos(i,n,W,padl,padr):.1f}" cy="{y(s["premium"]):.1f}" r="2.5" fill="#7c6fd6"/>'
-                   for i, s in enumerate(series))
-    grid = ""
-    for k in range(5):
-        gv = vmin + (vmax - vmin) * k / 4
-        gy = y(gv)
-        grid += f'<line x1="{padl}" y1="{gy:.1f}" x2="{W-padr}" y2="{gy:.1f}" stroke="#2a2f3a" stroke-width="0.5"/>'
-        grid += f'<text x="{padl-5}" y="{gy+3:.1f}" text-anchor="end" font-size="9" fill="#7a8088">{gv:.0f}M</text>'
-    thr_y = y(13)
-    xlab = ""
-    step = max(1, n // 6)
-    for i in range(0, n, step):
-        x = _xpos(i, n, W, padl, padr)
-        xlab += f'<text x="{x:.1f}" y="{H-8}" text-anchor="middle" font-size="9" fill="#7a8088">{_dmy(series[i]["date"])}</text>'
-    return f'''<svg viewBox="0 0 {W} {H}" width="100%" xmlns="http://www.w3.org/2000/svg">
-      {grid}
-      <polygon points="{area}" fill="#7c6fd6" fill-opacity="0.15"/>
-      <polyline points="{line}" fill="none" stroke="#7c6fd6" stroke-width="2"/>
-      <line x1="{padl}" y1="{thr_y:.1f}" x2="{W-padr}" y2="{thr_y:.1f}" stroke="#3fa66a" stroke-width="1.2" stroke-dasharray="5,3"/>
-      {dots}{xlab}
     </svg>'''
 
 
@@ -765,7 +736,7 @@ def render_html(series, stats, news, meta):
         cls = "up" if up else "down"
         arrow = "▲" if up else "▼"
         sign = "+" if up else "−"
-        return f'<div class="dod {cls}">{arrow} {sign}{_fmt(abs(delta))}M ({sign}{abs(pct):.2f}%) <span>so với {prev_label}</span></div>'
+        return f'<div class="dod {cls}">{arrow} {sign}{_fmt(abs(delta))}M ({sign}{_vnfmt(abs(pct),2)}%) <span>so với {prev_label}</span></div>'
 
     price_top = f"""
     <div class="prices">
@@ -775,40 +746,25 @@ def render_html(series, stats, news, meta):
     <p class="prod">VÀNG MIẾNG SJC (Vàng SJC) · đơn vị: đồng/lượng · Nguồn: BTMC (api.btmc.vn)</p>
     """
 
-    cards = f"""
-    <div class="stat"><div class="sl">SJC đỉnh ({_dmy(stats['sjc_peak']['date'])})</div><div class="sv blue">{_fmt(stats['sjc_peak']['value'])}M</div></div>
-    <div class="stat"><div class="sl">SJC hôm nay</div><div class="sv blue">{_fmt(stats['sjc_today']['value'])}M</div></div>
-    """ if stats else ""
-
     news_items = ""
     for i, a in enumerate(news, 1):
         news_items += f"""<a class="news" href="{html.escape(a['link'])}" target="_blank" rel="noopener">
           <span class="num">{i}</span><span class="ntext"><span class="ntitle">{html.escape(a['title'])}</span>
           <span class="nmeta">{html.escape(a.get('source',''))} · {html.escape(a.get('published',''))}</span></span></a>"""
 
-    # Panel đối chiếu VnExpress
+    # Badge tin cậy: agent tự đối chiếu giá SJC với nguồn độc lập VnExpress (1 dòng, gọn cho end user)
     vnx = meta.get("vnx") or {}
     xcheck = ""
-    if vnx.get("sjc") or vnx.get("world"):
-        def _cmp_row(label, ours, theirs, unit):
-            if ours is None or theirs is None:
-                return f'<tr><td class="rl">{label}</td><td>{_fmt(ours) if ours else "—"}{unit}</td><td>{_fmt(theirs) if theirs else "—"}{unit}</td><td><span class="muted">—</span></td></tr>'
-            diff = theirs - ours
-            pct = abs(diff) / ours * 100 if ours else 0
-            ok = pct <= 1.5
-            tag = f'<span class="{"ok" if ok else "warn"}">{"✓ khớp" if ok else "⚠ lệch"} {pct:.1f}%</span>'
-            return f'<tr><td class="rl">{label}</td><td>{_fmt(ours)}{unit}</td><td>{_fmt(theirs)}{unit}</td><td>{tag}</td></tr>'
-        sjc_ours = meta.get("sell")
-        world_ours = meta.get("spot_usd")
-        link = f'<a href="{html.escape(vnx["url"])}" target="_blank" rel="noopener" class="vnxlink">{html.escape(vnx.get("title") or "Xem bài VnExpress")}</a>' if vnx.get("url") else ""
-        xcheck = f"""<div class="card" style="margin-top:18px">
-          <h2>🔎 Đối chiếu nguồn — VnExpress</h2>
-          <table class="cmp"><tr><th></th><th>Nguồn ta (BTMC/gold-api)</th><th>VnExpress</th><th>Kết quả</th></tr>
-          {_cmp_row("SJC bán ra (tr/lượng)", sjc_ours, vnx.get("sjc"), "")}
-          {_cmp_row("Vàng thế giới (USD/oz)", world_ours, vnx.get("world"), "")}
-          </table>
-          <div class="disc" style="margin:10px 0 0">Đối chiếu tự động mỗi ngày với bài giá vàng mới nhất của VnExpress. {link}</div>
-        </div>"""
+    sjc_ours, vnx_sjc = meta.get("sell"), vnx.get("sjc")
+    if sjc_ours and vnx_sjc:
+        pct = abs(vnx_sjc - sjc_ours) / sjc_ours * 100
+        ok = pct <= 1.5
+        msg = (f"Giá SJC khớp nguồn độc lập VnExpress (lệch {_vnfmt(pct,1)}%)" if ok
+               else f"Giá SJC chênh {_vnfmt(pct,1)}% so với VnExpress — nên đối chiếu thêm")
+        link = (f' · <a href="{html.escape(vnx["url"])}" target="_blank" rel="noopener" class="vnxlink">Xem bài</a>'
+                if vnx.get("url") else "")
+        xcheck = (f'<div class="xbadge {"ok" if ok else "warn"}"><span class="xb-ic">{"✓" if ok else "⚠"}</span>'
+                  f'<span>{msg}{link}</span></div>')
 
     src_note = ("Điểm hôm nay là số liệu LIVE thật (SJC qua BTMC, quốc tế qua gold-api.com × tỷ giá). "
                 if live else "Không lấy được dữ liệu live hôm nay — hiển thị dữ liệu gần nhất. ")
@@ -834,29 +790,28 @@ h1{{font-size:22px;margin:0 0 4px}} .sub{{color:#9aa0ad;font-size:13px;margin-bo
 .dod.up{{color:#3fa66a}} .dod.down{{color:#f87171}} .dod.muted{{color:#7a8088;font-weight:400}}
 .charts{{display:grid;grid-template-columns:1fr 1fr;gap:16px}}
 @media(max-width:720px){{.charts{{grid-template-columns:1fr}}}}
+@media(max-width:560px){{body{{padding:14px}} .pval{{font-size:24px}} .pcard{{min-width:0}}}}
 .card{{background:#171a21;border:1px solid #242832;border-radius:14px;padding:18px}}
 .ctitle{{font-size:14px;font-weight:600;margin:0 0 4px}}
 .legend{{font-size:11px;color:#9aa0ad;margin-bottom:8px}}
-.legend b{{font-weight:600}} .lg-red{{color:#5b9bd5}} .lg-blue{{color:#5b9bd5}} .lg-purple{{color:#7c6fd6}} .lg-green{{color:#3fa66a}}
+.legend b{{font-weight:600}} .lg-red{{color:#f5c542}} .lg-blue{{color:#5b9bd5}}
+.ic{{width:1em;height:1em;vertical-align:-0.14em}}
+.cmp-cta{{display:block;margin-top:14px;color:#f5c542;text-decoration:none;font-size:13px;line-height:1.4}}
+.cmp-cta:hover{{text-decoration:underline}}
+.foot{{color:#6b7280;font-size:12px;text-align:center;margin-top:18px}} .foot b{{color:#f5c542}} .foot .ic{{color:#f5c542}}
 .axis{{font-size:10px;color:#6b7280;text-align:center;margin-top:2px}}
 .chartnote{{font-size:11px;color:#7a8088;margin-top:8px;line-height:1.4}}
-.stats{{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:18px 0}}
-.stat{{background:#171a21;border:1px solid #242832;border-radius:12px;padding:14px}}
-.sl{{color:#9aa0ad;font-size:12px;margin-bottom:6px}} .sv{{font-size:22px;font-weight:700;color:#e7e9ee}}
-.sv.blue{{color:#5b9bd5}} .sv.green{{color:#3fa66a}}
 .disc{{color:#6b7280;font-size:11px;line-height:1.5;margin:8px 0 20px}}
 h2{{font-size:15px;margin:0 0 12px;color:#cdd2db}}
-table.cmp{{width:100%;border-collapse:collapse}}
-table.cmp th,table.cmp td{{padding:9px 8px;text-align:right;border-bottom:1px solid #242832;font-size:13px}}
-table.cmp th{{color:#9aa0ad;font-weight:500;font-size:11px}}
-td.rl{{text-align:left}}
-.ok{{color:#3fa66a}} .warn{{color:#e0a13d}} .muted{{color:#6b7280}}
+.xbadge{{display:flex;align-items:center;gap:10px;background:#171a21;border:1px solid #242832;border-radius:12px;padding:13px 16px;margin-top:18px;font-size:13px;color:#cdd2db;line-height:1.5}}
+.xbadge .xb-ic{{font-weight:700;font-size:15px;flex-shrink:0}}
+.xbadge.ok .xb-ic{{color:#3fa66a}} .xbadge.warn .xb-ic{{color:#e0a13d}}
 .vnxlink{{color:#5b9bd5;text-decoration:none}} .vnxlink:hover{{text-decoration:underline}}
 .calc{{margin-top:10px}}
 .clabel{{display:block;font-size:12px;color:#9aa0ad;margin-bottom:8px}}
 .inrow{{display:flex;gap:8px;margin-bottom:14px}}
 .inrow input{{flex:1;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:10px 12px;font-size:15px;outline:none}}
-.inrow input:focus{{border-color:#5b9bd5}}
+.inrow input:focus{{border-color:#f5c542}}
 .inrow button{{background:#f5c542;color:#0f1115;border:none;border-radius:8px;padding:0 18px;font-weight:700;font-size:14px;cursor:pointer}}
 .inrow button:hover{{background:#e3b52f}}
 .crow{{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px solid #242832;color:#cdd2db}}
@@ -869,29 +824,28 @@ td.rl{{text-align:left}}
 .num{{background:#f5c542;color:#0f1115;font-weight:700;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}}
 .ntitle{{display:block;font-size:14px;line-height:1.4}} .nmeta{{display:block;color:#9aa0ad;font-size:12px;margin-top:4px}}
 </style></head><body><div class="wrap">
-<h1>🏆 Giá Vàng Hôm Nay</h1><div class="sub">Cập nhật lúc {now}</div>
+<h1>Giá vàng thị trường</h1><div class="sub"><a href="/" style="color:#f5c542;text-decoration:none">← Gold Companion</a> · Cập nhật lúc {now}</div>
 {price_top}
 <div class="charts">
   <div class="card"><div class="ctitle">Giá vàng trong nước vs quốc tế <span style="font-size:10px;color:#7a8088;font-weight:400">· dữ liệu minh hoạ</span></div>
     <div class="legend"><b class="lg-red">━ SJC bán ra</b>  <b class="lg-blue">┅ Quốc tế quy đổi</b></div>
     {chart_dual(series)}<div class="axis">Triệu đồng/lượng</div>
     <div class="chartnote">Ghi chú: Giá quốc tế quy đổi = spot XAU (USD/oz) × tỷ giá USD/VND × 1,2057 (oz/lượng)</div></div>
-  <div class="card"><div class="ctitle">So sánh giá vàng bạn đã mua</div>
-    <div class="legend">Nhập giá bạn đã mua để tính lãi/lỗ so với giá hiện tại</div>
+  <div class="card"><div class="ctitle">Tính nhanh lãi/lỗ</div>
     <div class="calc">
       <label class="clabel">Giá bạn đã mua (triệu đồng / lượng)</label>
       <div class="inrow">
-        <input id="buyprice" type="number" step="0.1" min="0" placeholder="VD: 145.0" oninput="calcGold()">
-        <button type="button" onclick="calcGold()">So sánh</button>
+        <input id="buyprice" type="number" step="0.1" min="0" placeholder="Ví dụ: 145" oninput="calcGold()">
+        <button type="button" onclick="calcGold()">Tính</button>
       </div>
-      <div id="calcout" class="calcout"><span class="muted">Nhập giá để xem kết quả…</span></div>
+      <div id="calcout" class="calcout"></div>
     </div>
   </div>
 </div>
 <div class="disc">{src_note}{spot_txt}Các điểm trước hôm nay là ước tính nội suy từ diễn biến thị trường, sẽ được thay bằng số liệu thật khi agent chạy mỗi ngày. Hover để xem giá trị tại từng điểm.</div>
 {xcheck}
-<div class="card" style="margin-top:18px"><h2>📰 Tin tức nổi bật trong ngày</h2>{news_items}</div>
-<div class="axis" style="margin-top:16px">🪙 Gold Companion · Powered by GreenNode AgentBase · <b style="color:#f5c542">Developed by Yuna</b></div>
+<div class="card" style="margin-top:18px"><h2><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.4" width="9" height="9.2" rx="1"/><path d="M5.2 6h4.6M5.2 8h4.6M5.2 10h3"/></svg> Tin tức nổi bật trong ngày</h2>{news_items}</div>
+<div class="foot"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/></svg> Gold Companion · Powered by GreenNode AgentBase · <b>Developed by Yuna</b></div>
 </div>
 <script>
 var CUR_BUY={cur_buy}, CUR_SELL={cur_sell};
@@ -899,7 +853,7 @@ function fmt(v){{return v.toLocaleString('vi-VN',{{minimumFractionDigits:1,maxim
 function calcGold(){{
   var el=document.getElementById('buyprice'), out=document.getElementById('calcout');
   var p=parseFloat(el.value);
-  if(isNaN(p)||p<=0){{out.innerHTML='<span class="muted">Nhập giá để xem kết quả…</span>';return;}}
+  if(isNaN(p)||p<=0){{out.innerHTML='';return;}}
   var realized=CUR_BUY-p, pct=p>0?(realized/p*100):0;
   var profit=realized>=0;
   var cls=profit?'ok':'warn', arrow=profit?'▲':'▼', word=profit?'Lãi':'Lỗ';
@@ -907,7 +861,8 @@ function calcGold(){{
     '<div class="crow"><span>Giá bán ra hiện tại (thị giá)</span><b>'+fmt(CUR_SELL)+'M</b></div>'+
     '<div class="crow"><span>Giá mua vào hiện tại (tiệm thu lại)</span><b>'+fmt(CUR_BUY)+'M</b></div>'+
     '<div class="crow"><span>Giá bạn đã mua</span><b>'+fmt(p)+'M</b></div>'+
-    '<div class="cres '+cls+'">'+arrow+' '+word+' nếu bán lại: '+fmt(Math.abs(realized))+'M/lượng ('+(profit?'+':'-')+Math.abs(pct).toFixed(2)+'%)</div>';
+    '<div class="cres '+cls+'">'+arrow+' '+word+' nếu bán lại: '+fmt(Math.abs(realized))+'M/lượng ('+(profit?'+':'-')+Math.abs(pct).toFixed(2).replace('.',',')+'%)</div>'+
+    '<a href="/" class="cmp-cta">Theo dõi cả danh mục + tư vấn AI trên Gold Companion →</a>';
 }}
 </script>
 </body></html>"""
@@ -1090,7 +1045,7 @@ h1{font-size:22px;margin:0 0 2px}
 .card{background:#171a21;border:1px solid #242832;border-radius:14px;padding:18px;margin-bottom:16px}
 .userrow{display:flex;gap:8px;align-items:center;margin-bottom:16px}
 .userrow input{flex:1;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:9px 12px;font-size:14px;outline:none}
-.userrow input:focus{border-color:#5b9bd5}
+.userrow input:focus{border-color:#f5c542}
 .namehint{font-size:11px;color:#7a8088;margin:-6px 0 14px;line-height:1.5}
 .btn{background:#f5c542;color:#0f1115;border:none;border-radius:8px;padding:9px 16px;font-weight:700;font-size:14px;cursor:pointer}
 .btn:hover{background:#e3b52f}
@@ -1116,7 +1071,7 @@ h1{font-size:22px;margin:0 0 2px}
 .brand{font-size:18px;font-weight:800}
 .userbox{display:flex;gap:6px;align-items:center}
 .userbox input{width:160px;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:7px 10px;font-size:12px;outline:none}
-.userbox input:focus{border-color:#5b9bd5}
+.userbox input:focus{border-color:#f5c542}
 .btn.sm{padding:7px 12px;font-size:12px}
 .profile-chip{background:#1c1a12;border:1px solid #3a3520;color:#f5c542;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .profile-chip:hover{background:#24210f}
@@ -1125,10 +1080,9 @@ h1{font-size:22px;margin:0 0 2px}
 .flowbar span{color:#5b6270;margin:0 2px} .flowbar b{color:#0a84ff}
 .btn.zalo{background:#0068ff;color:#fff} .btn.zalo:hover{background:#0057d6}
 .ctazone{margin-top:12px;display:flex;flex-direction:column;align-items:center;gap:6px}
-.btn.act-gold{width:100%;background:linear-gradient(135deg,#f7d774,#f5c542);color:#0f1115;border:none;border-radius:12px;padding:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;box-shadow:0 6px 20px rgba(245,197,66,.22)}
-.btn.act-gold:hover{filter:brightness(1.04)}
-.ag-main{font-size:15px;font-weight:800;letter-spacing:.2px}
-.ag-sub{font-size:11px;font-weight:500;opacity:.65}
+.btn.act-gold{width:100%;background:#f5c542;color:#1a1400;border:none;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:700;letter-spacing:.2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 2px 9px rgba(245,197,66,.14);transition:filter .15s}
+.btn.act-gold:hover{filter:brightness(1.05)}
+.demo-pill{background:rgba(0,0,0,.16);font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:5px}
 .modal-tabs{display:flex;gap:6px;margin-bottom:14px}
 .mtab{flex:1;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#9aa0ad;padding:9px;font-size:13px;font-weight:600;cursor:pointer}
 .mtab.active{background:#f5c542;color:#0f1115;border-color:#f5c542}
@@ -1146,31 +1100,33 @@ h1{font-size:22px;margin:0 0 2px}
 .modal-box{background:#171a21;border:1px solid #2a2f3a;border-radius:16px;padding:22px;max-width:380px;width:100%}
 .modal-h{font-size:16px;font-weight:700;margin-bottom:14px}
 .modal-box .ml{display:block;font-size:12px;color:#9aa0ad;margin:10px 0 4px}
-.modal-box select,.modal-box input{width:100%;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:10px;font-size:14px}
+.modal-box select,.modal-box input{width:100%;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:10px;font-size:14px;outline:none}
+.modal-box select:focus,.modal-box input:focus{border-color:#f5c542}
 .buy-sum{background:#1e2430;border-radius:10px;padding:12px;margin:14px 0;font-size:13px;line-height:1.7}
 .modal-act{display:flex;gap:10px} .modal-act .btn{flex:1}
 .giadinh{color:#7a8088;font-size:11px}
-.demo-badge{background:#3a3520;color:#f5c542;font-size:10px;font-weight:700;border-radius:4px;padding:2px 6px;vertical-align:middle;letter-spacing:.5px}
+.demo-badge{background:#3a3520;color:#f5c542;font-size:10px;font-weight:700;border-radius:5px;padding:2px 6px;vertical-align:middle;letter-spacing:.5px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);max-width:88%;background:#15171e;border:1px solid #3a3520;border-left:3px solid #f5c542;border-radius:12px;padding:13px 16px;font-size:13px;color:#e7e9ee;line-height:1.5;box-shadow:0 14px 40px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast b{color:#f5c542}
 .add-err{display:none;margin-top:14px;background:#1c2029;border-left:3px solid #f5c542;border-radius:10px;padding:11px 13px;font-size:13px;color:#e7e9ee;line-height:1.5}
 .add-err b{color:#f5c542}
 .login-box{max-width:400px;text-align:center}
-.login-logo{font-size:42px;line-height:1;margin-bottom:8px}
+.login-logo{width:58px;height:58px;margin:0 auto 12px;border-radius:50%;background:linear-gradient(145deg,#f7d774,#e9b008);display:flex;align-items:center;justify-content:center;color:#1a1400;box-shadow:0 6px 18px rgba(245,197,66,.22)}
+.login-logo svg{width:28px;height:28px}
 .login-title{font-size:23px;font-weight:800;letter-spacing:.3px}
 .login-sub{font-size:13px;color:#9aa0ad;margin-bottom:18px}.login-sub b{color:#f5c542}
 .login-benefits{text-align:left;background:#0f1115;border:1px solid #242832;border-radius:12px;padding:14px;margin-bottom:18px;display:flex;flex-direction:column;gap:11px}
 .lb{font-size:13px;color:#cdd2db;display:flex;gap:10px;align-items:flex-start;line-height:1.45}
-.lb span{font-size:17px;flex-shrink:0}.lb b{color:#f5c542}
+.lb-i{width:30px;height:30px;flex-shrink:0;border-radius:8px;background:rgba(245,197,66,.1);color:#f5c542;display:flex;align-items:center;justify-content:center}.lb-i svg{width:16px;height:16px}.lb b{color:#f5c542}
 .login-box .ml{display:block;text-align:left;font-size:12px;color:#9aa0ad;margin-bottom:6px}
-.login-box input{width:100%;background:#0f1115;border:1px solid #2a2f3a;border-radius:9px;color:#e7e9ee;padding:11px 12px;font-size:15px;outline:none}
+.login-box input{width:100%;background:#0f1115;border:1px solid #2a2f3a;border-radius:8px;color:#e7e9ee;padding:11px 12px;font-size:15px;outline:none}
 .login-box input:focus{border-color:#f5c542}
 .login-cta{width:100%;margin-top:14px;padding:13px;font-size:15px;font-weight:700}
 .login-foot{font-size:11px;color:#6b7280;margin-top:12px;line-height:1.4}
 .skip-link{background:none;border:none;color:#7a8088;font-size:12px;text-decoration:underline;cursor:pointer;margin-top:10px}
 .skip-link:hover{color:#cdd2db}
-.mktcard{background:#171a21;border:1px solid #242832;border-radius:12px;padding:11px 16px;margin-bottom:14px;font-size:13px;color:#cdd2db}
+.mktcard{background:#171a21;border:1px solid #242832;border-radius:14px;padding:11px 16px;margin-bottom:14px;font-size:13px;color:#cdd2db}
 .mktcard b{color:#f5c542}
 .mktcard .mk-sub{color:#7a8088;font-size:11px}
 .mk-badge{font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;margin-left:4px}
@@ -1187,8 +1143,11 @@ td.l,th.l{text-align:left}
 .lot-date{font-size:11px;color:#7a8088;font-weight:400;margin-top:2px}
 .del{background:none;border:none;color:#f87171;cursor:pointer;font-size:15px;line-height:1;padding:4px 6px}
 .qprompts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.qp{background:#1e2430;border:1px solid #2f3a4a;border-radius:999px;padding:6px 12px;font-size:12px;color:#cdd2db;cursor:pointer;text-align:left}
+.qp{display:inline-flex;align-items:center;gap:6px;background:#1e2430;border:1px solid #2f3a4a;border-radius:999px;padding:6px 13px;font-size:12px;color:#cdd2db;cursor:pointer;text-align:left}
 .qp:hover{background:#242c3a;border-color:#3a4a5e}
+.qp-i{width:13px;height:13px;flex-shrink:0;opacity:.7}
+.ic{width:1em;height:1em;vertical-align:-0.14em;flex-shrink:0}
+.brand .ic,.profile-chip .ic,.foot .ic{color:#f5c542}
 .newsbox{margin-top:14px}
 .nb-h{font-size:12px;color:#9aa0ad;margin-bottom:4px;font-weight:600}
 .nb-i{display:block;font-size:12px;color:#5b9bd5;text-decoration:none;padding:7px 0;border-top:1px solid #242832;line-height:1.45}
@@ -1207,6 +1166,7 @@ td.l,th.l{text-align:left}
   tbody td.act{justify-content:flex-end}
   .pf-actions .btn{flex:1 1 0;min-width:0;white-space:nowrap}
   .pf-actions .danger{flex:1 0 100%;margin-left:0;margin-top:2px}
+  .form-grid{grid-template-columns:1fr}
 }
 .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:6px}
 .form-grid label{display:block;font-size:11px;color:#9aa0ad;margin-bottom:4px}
@@ -1223,20 +1183,20 @@ a.market{color:#5b9bd5;font-size:13px;text-decoration:none}
 .foot b{color:#f5c542}
 </style></head><body><div class="wrap">
 <div class="top">
-  <div class="brand">🪙 Aurum</div>
-  <button class="profile-chip" onclick="openName()" id="profileChip">👤 Nhập tên</button>
+  <div class="brand"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/></svg> Aurum</div>
+  <button class="profile-chip" onclick="openName()" id="profileChip"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5.5" r="2.4"/><path d="M3.6 12.8c0-2.4 2-3.8 4.4-3.8s4.4 1.4 4.4 3.8"/></svg> Nhập tên</button>
 </div>
 <div class="disc">Bạn đang trò chuyện với <b>Aurum</b> — trợ lý <b>AI</b> · thông tin tham khảo, không phải lời khuyên đầu tư</div>
 
 <div class="hero" id="heroCard">
-  <div class="hlabel" id="hlabel">💰 Tổng tài sản vàng của bạn</div>
+  <div class="hlabel" id="hlabel"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="11" height="8" rx="1.6"/><path d="M2.5 6.6h11"/><circle cx="10.8" cy="9" r=".85"/></svg> Tổng tài sản vàng của bạn</div>
   <div class="hasset" id="totVal">—</div>
   <div class="pnlbig" id="totPnl">—</div>
   <div class="pnlcap">Tổng lời / lỗ so với vốn bỏ ra</div>
   <div class="chips">
     <span class="chip" id="roiChip">ROI —</span>
   </div>
-  <div class="hinsight" id="insight"><span class="who">🤖 Aurum</span><span class="muted">Đang theo dõi tài sản của bạn…</span></div>
+  <div class="hinsight" id="insight"><span class="who"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.4l1.1 3.2 3.2 1.1-3.2 1.1L8 11l-1.1-3.2L3.7 6.7l3.2-1.1z"/></svg> Aurum</span><span class="muted">Đang theo dõi tài sản của bạn…</span></div>
   <div class="ctazone" id="ctazone"></div>
   <div class="qprompts" id="qprompts"></div>
   <div class="chatrow" id="chatrow">
@@ -1246,10 +1206,10 @@ a.market{color:#5b9bd5;font-size:13px;text-decoration:none}
   <div class="newsbox" id="newsbox"></div>
 </div>
 
-<div class="mktcard" id="mkt">📈 Đang tải giá thị trường…</div>
+<div class="mktcard" id="mkt">Đang tải giá thị trường…</div>
 
 <div class="card" id="pfCard">
-  <h2>📊 Danh mục vàng của bạn</h2>
+  <h2><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 13V8.5M8 13V3.5M12.5 13v-3"/></svg> <span id="pfTitle">Danh mục vàng của bạn</span></h2>
   <div class="tablewrap"><table id="pfTable"><thead><tr>
     <th class="l">Loại</th><th>SL</th><th>Giá mua</th><th>Giá TK</th><th>Lời/Lỗ</th><th>ROI</th><th></th>
   </tr></thead><tbody id="pfBody"><tr><td colspan="7" class="muted l">Chưa có dữ liệu</td></tr></tbody></table></div>
@@ -1258,15 +1218,15 @@ a.market{color:#5b9bd5;font-size:13px;text-decoration:none}
 </div>
 
 <div class="modal" id="addModal"><div class="modal-box">
-  <div class="modal-h">➕ Thêm tài sản vàng</div>
+  <div class="modal-h"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5v9M3.5 8h9"/></svg> Thêm tài sản vàng</div>
   <div class="form-grid">
     <div><label class="ml">Loại vàng</label><select id="f_type">
       <option value="sjc">Vàng miếng SJC</option>
       <option value="nhan">Nhẫn tròn trơn</option>
       <option value="nutrang">Vàng nữ trang</option>
     </select></div>
-    <div><label class="ml">Số lượng (lượng)</label><input id="f_qty" type="number" step="0.1" placeholder="VD: 2"/></div>
-    <div><label class="ml">Giá mua (triệu đồng/lượng)</label><input id="f_price" type="number" step="0.1" placeholder="VD: 150"/><div class="giadinh" style="margin-top:5px">Nhập theo <b>triệu/lượng</b> — VD 150 triệu/lượng nhập <b>150</b>.</div></div>
+    <div><label class="ml">Số lượng (lượng)</label><input id="f_qty" type="number" step="0.1" placeholder="Ví dụ: 2"/></div>
+    <div><label class="ml">Giá mua (triệu đồng/lượng)</label><input id="f_price" type="number" step="0.1" placeholder="Ví dụ: 150"/><div class="giadinh" style="margin-top:5px">Nhập theo <b>triệu/lượng</b> — ví dụ 150 triệu/lượng nhập <b>150</b>.</div></div>
     <div><label class="ml">Ngày mua (không bắt buộc)</label><input id="f_date" type="text" inputmode="numeric" placeholder="dd/mm/yyyy"/></div>
   </div>
   <div id="addErr" class="add-err"></div>
@@ -1287,27 +1247,27 @@ a.market{color:#5b9bd5;font-size:13px;text-decoration:none}
     <input id="b_qty" type="number" step="0.1" min="0.1" value="0.1" oninput="updModal()"/>
     <div class="buy-sum" id="b_sum"></div>
     <div class="modal-act"><button class="btn ghost" onclick="closeBuy()">Hủy</button><button class="btn" id="txnBtn" onclick="confirmTxn()">Thanh toán</button></div>
-    <div class="giadinh" style="margin-top:10px">⚠️ Giao dịch vàng qua Zalopay là tính năng <b>giả định</b> cho cuộc thi — không phát sinh thanh toán thật.</div>
+    <div class="giadinh" style="margin-top:10px"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.6L14.2 13H1.8z"/><path d="M8 6.6v3"/><path d="M8 11.1h.01"/></svg> Giao dịch vàng qua Zalopay là tính năng <b>giả định</b> cho cuộc thi — không phát sinh thanh toán thật.</div>
   </div>
 </div>
 
 <div class="modal" id="nameModal"><div class="modal-box login-box">
-  <div class="login-logo">🪙</div>
+  <div class="login-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17.5l5-5 4 4 7-8"/><path d="M16 8.5h4v4"/></svg></div>
   <div class="login-title">Gold Companion</div>
   <div class="login-sub">Biết vàng của bạn đang <b>lời hay lỗ</b> — mỗi ngày</div>
   <div class="login-benefits">
-    <div class="lb"><span>📊</span><div>Theo dõi <b>lời / lỗ &amp; ROI</b> danh mục vàng realtime — không chỉ xem giá thị trường.</div></div>
-    <div class="lb"><span>🤖</span><div>Aurum <b>tư vấn cá nhân hóa</b> theo danh mục &amp; tin tức trong ngày.</div></div>
-    <div class="lb"><span>💾</span><div>Lưu danh mục <b>theo tên</b> — Aurum ghi nhớ qua mỗi lần bạn quay lại.</div></div>
+    <div class="lb"><span class="lb-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 11l3.5-3.5 3 3 4.5-5"/><path d="M11 5.5h2.5V8"/></svg></span><div>Theo dõi <b>lời / lỗ &amp; ROI</b> danh mục vàng realtime — không chỉ xem giá thị trường.</div></div>
+    <div class="lb"><span class="lb-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3" width="11" height="7.5" rx="2"/><path d="M6 10.5v2.4l2.7-2.4"/></svg></span><div>Aurum <b>tư vấn cá nhân hóa</b> theo danh mục &amp; tin tức trong ngày.</div></div>
+    <div class="lb"><span class="lb-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3h7v10l-3.5-2.4L4.5 13z"/></svg></span><div>Lưu danh mục <b>theo tên</b> — Aurum ghi nhớ qua mỗi lần bạn quay lại.</div></div>
   </div>
   <label class="ml">Nhập tên của bạn để bắt đầu</label>
-  <input id="user" placeholder="Vd: Minh, Chi, Tùng…" onkeydown="if(event.key==='Enter')saveUser()"/>
+  <input id="user" placeholder="Ví dụ: Minh, Chi, Tùng…" onkeydown="if(event.key==='Enter')saveUser()"/>
   <button class="btn login-cta" onclick="saveUser()">Bắt đầu theo dõi tài sản →</button>
   <div class="login-foot">Chỉ cần tên · số liệu demo, không thu thập dữ liệu cá nhân thật</div>
   <button class="skip-link" onclick="closeName()">Bỏ qua, xem thử trước</button>
 </div></div>
 
-<div class="foot">🪙 Gold Companion · Powered by GreenNode AgentBase · <b>Developed by Yuna</b></div>
+<div class="foot"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/></svg> Gold Companion · Powered by GreenNode AgentBase · <b>Developed by Yuna</b></div>
 </div>
 <div id="toast"></div>
 <script>
@@ -1317,12 +1277,12 @@ function getUser(){return localStorage.getItem('gc_user')||'';}
 function openName(){document.getElementById('user').value=getUser();document.getElementById('nameModal').classList.add('open');document.getElementById('user').focus();}
 function closeName(){document.getElementById('nameModal').classList.remove('open');}
 function saveUser(){var u=document.getElementById('user').value.trim();if(u){localStorage.setItem('gc_user',u);closeName();load();}}
-function updProfileChip(){var u=getUser(),el=document.getElementById('profileChip');if(el)el.textContent=u?('👤 '+u):'👤 Nhập tên';}
+function updProfileChip(){var u=getUser(),el=document.getElementById('profileChip');if(el)el.innerHTML=ic('user')+' '+(u?esc(u):'Nhập tên');}
 function getUid(){var u=localStorage.getItem('gc_uid');if(!u){u=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():('u-'+Date.now().toString(16)+'-'+Math.random().toString(16).slice(2,10));localStorage.setItem('gc_uid',u);}return u;}
 async function api(body){body.user=getUser()||'guest';body.uid=getUid();const r=await fetch('/invocations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return r.json();}
 function cls(v){return v>0?'pnl-pos':(v<0?'pnl-neg':'pnl-flat');}
 function pct(v,d){return Math.abs(v||0).toFixed(d).replace('.',',');}
-function setIns(html){document.getElementById('insight').innerHTML='<span class="who">🤖 Aurum</span>'+html;}
+function setIns(html){document.getElementById('insight').innerHTML='<span class="who">'+ic('ai')+' Aurum</span>'+html;}
 var _toastT=null;
 function showToast(html){var el=document.getElementById('toast');if(!el)return;el.innerHTML=html;el.classList.add('show');if(_toastT)clearTimeout(_toastT);_toastT=setTimeout(function(){el.classList.remove('show');},4200);}
 // Lớp 1: tự nhận diện đơn vị giá mua. Giá vàng thực tế ~[10,1000] triệu/lượng.
@@ -1332,7 +1292,7 @@ function normPrice(raw){
   if(v<=0)return {v:0,note:''};
   var divs=[[1,''],[1e6,'đồng/lượng'],[1e3,'nghìn đồng/lượng']];
   for(var i=0;i<divs.length;i++){var nv=Math.round(v/divs[i][0]*1000)/1000;
-    if(nv>=10&&nv<=1000)return {v:nv,note:i?('🤖 <b>Aurum:</b> Đã hiểu bạn nhập theo '+divs[i][1]+' → chuẩn hóa thành <b>'+fmt(nv)+' triệu/lượng</b>.'):''};}
+    if(nv>=10&&nv<=1000)return {v:nv,note:i?(ic('ai')+' <b>Aurum:</b> Đã hiểu bạn nhập theo '+divs[i][1]+' → chuẩn hóa thành <b>'+fmt(nv)+' triệu/lượng</b>.'):''};}
   return {v:v,note:''}; // ngoài mọi thang → rào cứng bên dưới chặn
 }
 function render(d){
@@ -1341,14 +1301,15 @@ function render(d){
   var t=d.totals||{}, rows=d.rows||[];
   window.lastRows=rows;
   var u=getUser(),hl=document.getElementById('hlabel');
-  if(hl)hl.textContent=(u&&rows.length)?('💰 Danh mục tài sản của '+u):'💰 Tổng tài sản vàng của bạn';
+  if(hl)hl.innerHTML=ic('wallet')+' '+((u&&rows.length)?('Danh mục tài sản của '+esc(u)):'Tổng tài sản vàng của bạn');
+  var pt=document.getElementById('pfTitle');if(pt)pt.textContent=u?('Danh mục vàng của '+u):'Danh mục vàng của bạn';
   updProfileChip();
   var sj=(d.prices||{}).sjc||{};
   if(sj.buy){
     var chg=d.sjc_change_pct, badge='';
     if(chg!==null&&chg!==undefined){var bc=chg>0?'up':(chg<0?'down':'flat'),ar=chg>0?'▲ +':(chg<0?'▼ −':'■ ');badge=' <span class="mk-badge '+bc+'">'+ar+pct(chg,2)+'%</span>';}
     var when=d.asof?('<span class="mk-sub"> · '+d.asof+'</span>'):'';
-    document.getElementById('mkt').innerHTML='📈 <b>SJC thị trường</b>'+badge+when+'<br>Mua vào <b>'+fmt(sj.buy)+'M</b> · Bán ra <b>'+fmt(sj.sell)+'M</b><br><span class="mk-sub">🔄 làm mới sau <span id="mktCountdown">'+(window.refreshLeft||60)+'</span>s</span> · <a class="market" href="/market" target="_blank">📈 Xem biểu đồ →</a>';
+    document.getElementById('mkt').innerHTML=ic('trend')+' <b>SJC thị trường</b>'+badge+when+'<br>Mua vào <b>'+fmt(sj.buy)+'M</b> · Bán ra <b>'+fmt(sj.sell)+'M</b><br><span class="mk-sub">'+ic('refresh')+' làm mới sau <span id="mktCountdown">'+(window.refreshLeft||60)+'</span>s</span> · <a class="market" href="/market" target="_blank">Xem biểu đồ →</a>';
   }
   document.getElementById('totVal').textContent='Tổng '+fmt(t.value)+'M';
   var pe=document.getElementById('totPnl');
@@ -1376,60 +1337,69 @@ function render(d){
 function renderQuickPrompts(rows){
   var el=document.getElementById('qprompts'); if(!el)return;
   if(!rows||!rows.length){el.innerHTML='';return;}
-  var pos=rows.filter(function(r){return r.roi>0;}).sort(function(a,b){return b.roi-a.roi;}); // tốt nhất trước
-  var loss=rows.filter(function(r){return r.roi<0;}).sort(function(a,b){return a.roi-b.roi;}); // lỗ nặng nhất trước
-  var best=pos[0], worst=loss[0];
-  var bigWin=pos.find(function(r){return r.roi>5;});
-  var chips=[];
-  if(worst && best){
-    // Hỗn hợp: ưu tiên xử lý mã lỗ nặng nhất, rồi cân bằng tâm lý bằng mã tốt nhất
-    chips.push(worst.label+' đang chịu lỗ ngắn hạn, tôi nên giữ tiếp hay cắt lỗ?');
-    chips.push('Có nên mua thêm '+best.label+' để tích sản tiếp không?');
-  } else if(worst){
-    // Chỉ có mã lỗ
-    chips.push(worst.label+' đang chịu lỗ ngắn hạn, tôi nên giữ tiếp hay cắt lỗ?');
-    chips.push('Giá '+worst.label+' xuống thấp, có nên mua thêm để trung bình giá?');
-  } else if(bigWin){
-    // Lời đậm (>5%)
-    chips.push('Có nên mua thêm '+bigWin.label+' để tích sản tiếp không?');
-    chips.push('Giá '+bigWin.label+' đang tốt, tôi có nên chốt lời một phần?');
-  } else if(best){
-    // Lời nhẹ (0-5%)
-    chips.push('Có nên mua thêm '+best.label+' để tích sản tiếp không?');
-  }
-  chips.push('Hôm nay có thông tin gì bất lợi cho tôi?');
-  el.innerHTML=chips.map(function(c){return '<button class="qp" onclick="askQuick(this.textContent)">'+c+'</button>';}).join('');
+  // 4 intent KIỂM SOÁT thay cho câu hỏi tự do → mỗi nút là 1 ngữ cảnh tư vấn xác định
+  var chips=[['hold','Giữ nguyên'],['sell','Bán bớt'],['buy','Mua thêm'],['news','Hôm nay có tin gì mới?']];
+  el.innerHTML=chips.map(function(c){return '<button class="qp" onclick="askIntent(\\''+c[0]+'\\')">'+qpIcon(c[0])+'<span>'+c[1]+'</span></button>';}).join('');
 }
-function askQuick(t){sendChat(t);}
+// Icon line đơn sắc dùng chung (thay emoji màu) — stroke = màu chữ
+function ic(k){var p={
+  coin:'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/>',
+  ai:'<path d="M8 2.4l1.1 3.2 3.2 1.1-3.2 1.1L8 11l-1.1-3.2L3.7 6.7l3.2-1.1z"/>',
+  user:'<circle cx="8" cy="5.5" r="2.4"/><path d="M3.6 12.8c0-2.4 2-3.8 4.4-3.8s4.4 1.4 4.4 3.8"/>',
+  wallet:'<rect x="2.5" y="4" width="11" height="8" rx="1.6"/><path d="M2.5 6.6h11"/><circle cx="10.8" cy="9" r=".85"/>',
+  trend:'<path d="M2.5 11l3.5-3.5 3 3 4.5-5"/><path d="M11 5.5h2.5V8"/>',
+  bars:'<path d="M3.5 13V8.5M8 13V3.5M12.5 13v-3"/>',
+  news:'<rect x="3" y="3.4" width="9" height="9.2" rx="1"/><path d="M5.2 6h4.6M5.2 8h4.6M5.2 10h3"/>',
+  plus:'<path d="M8 3.5v9M3.5 8h9"/>',
+  refresh:'<path d="M12.5 5.5a5 5 0 1 0 1 3"/><path d="M13 2.8v3h-3"/>',
+  check:'<path d="M3.5 8.4l3 3 6-6.6"/>',
+  warn:'<path d="M8 2.6L14.2 13H1.8z"/><path d="M8 6.6v3"/><path d="M8 11.1h.01"/>',
+  hand:'<path d="M5 8V4.6a1 1 0 0 1 2 0V8M7 7.6V3.8a1 1 0 0 1 2 0V8M9 7.8V4.6a1 1 0 0 1 2 0V9c0 2.2-1.6 4-4 4s-3.5-1.4-4-3l-.6-1.8a1 1 0 0 1 1.8-.8z"/>'
+}[k]||'';return '<svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';}
+// Icon line đơn sắc (stroke = màu chữ) — đơn giản, không màu mè
+function qpIcon(k){
+  var p={
+    hold:'<rect x="4" y="7.3" width="8" height="5.7" rx="1"/><path d="M6 7.3V5.8a2 2 0 0 1 4 0v1.5"/>',
+    sell:'<path d="M8 3.5v8M4.5 8l3.5 3.5L11.5 8"/>',
+    buy:'<path d="M8 4v8M4 8h8"/>',
+    news:'<rect x="3.8" y="3.5" width="8.4" height="9" rx="1"/><path d="M6 6.2h4M6 8.2h4M6 10.2h2.6"/>'
+  }[k]||'';
+  return '<svg class="qp-i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+}
+function askIntent(kind){
+  window.lastIntent=kind;  // showActionCard dựa vào đây để chỉ mở nút giao dịch cho Bán/Mua thêm
+  var msg;
+  if(kind==='hold') msg='Tôi muốn GIỮ NGUYÊN danh mục lúc này. Xác nhận giúp tôi vì sao giữ là hợp lý, ngắn gọn.';
+  else if(kind==='sell') msg='Tôi đang cân nhắc BÁN bớt. Tôi nên cân nhắc gì trước khi bán (hiện thực hóa lời/lỗ, chênh lệch giá mua-bán)? Ngắn gọn.';
+  else if(kind==='buy') msg='Tôi đang cân nhắc MUA THÊM để tích sản. Tôi nên lưu ý gì và rủi ro ra sao? Ngắn gọn.';
+  else msg='Hôm nay thị trường vàng có gì mới đáng chú ý với danh mục của tôi không (cả tích cực lẫn rủi ro)?';
+  sendChat(msg);
+}
 // CTA động theo nhu cầu: mua thêm mã tốt nhất / bán cắt lỗ mã đang lỗ
 // Action Card CHỈ hiện khi nhận định/tư vấn của Aurum thực sự gợi ý hành động (không hiện mặc định)
 function showActionCard(reply){
   var el=document.getElementById('ctazone'); if(!el)return;
   var rows=window.lastRows||[];
-  if(!rows.length||!reply){el.innerHTML='';return;}
-  var r=String(reply).toLowerCase();
-  var pos=rows.filter(function(x){return x.roi>0;}).sort(function(a,b){return b.roi-a.roi;});
-  var loss=rows.filter(function(x){return x.roi<0;}).sort(function(a,b){return a.roi-b.roi;});
-  var cr=document.getElementById('chatrow'),qp=document.getElementById('qprompts');
-  var main,sub,target;
-  if(/(tối ưu giá vốn|trung bình giá|cắt lỗ|tạm lỗ|lệnh lỗ)/.test(r)&&loss[0]){main='Tối ưu giá vốn';sub=loss[0].label+' · gợi ý bởi Aurum';target=loss[0].type;}
-  else if(/(mua thêm|tích sản|gia tăng|nắm giữ|tích lũy)/.test(r)&&pos[0]){main='Tích sản thêm';sub=pos[0].label+' · gợi ý bởi Aurum';target=pos[0].type;}
-  else{el.innerHTML='';if(cr)cr.style.display='';if(qp)qp.style.display='';return;}
-  // Có giải pháp cụ thể: nút vàng tinh tế dưới lời thoại; tạm ẩn ô chat để user tập trung quyết định
-  el.innerHTML='<button class="btn act-gold" onclick="openBuy(\\''+target+'\\')"><span class="ag-main">'+main+'</span><span class="ag-sub">'+sub+'</span></button>'+
-    '<button class="ask-again" onclick="reopenChat()">Nhờ Aurum tư vấn thêm</button>';
-  if(cr)cr.style.display='none';if(qp)qp.style.display='none';
+  var intent=window.lastIntent;
+  // Nút giao dịch CHỈ hiện sau khi user CHỦ ĐỘNG chọn intent Bán/Mua thêm (không tự đẩy).
+  // Giữ nguyên/Tin tức/insight thường → không nút giao dịch. KHÔNG ẩn chips/free chat.
+  if(!rows.length||(intent!=='sell'&&intent!=='buy')){el.innerHTML='';return;}
+  var t=(rows[0]||{}).type||'sjc';
+  var mode=(intent==='sell')?'sell':'buy';
+  var label=(intent==='sell')?'Bán bớt':'Mua thêm';
+  el.innerHTML='<button class="btn act-gold" onclick="openBuy(\\''+t+'\\',\\''+mode+'\\')">'+label+'<span class="demo-pill">DEMO</span></button>'+
+    '<button class="ask-again" onclick="clearCta()">Để sau</button>';
 }
-function reopenChat(){var cr=document.getElementById('chatrow'),qp=document.getElementById('qprompts'),cz=document.getElementById('ctazone');if(cr)cr.style.display='';if(qp)qp.style.display='';if(cz)cz.innerHTML='';}
-function openBuy(type){if(needName())return;if(type){document.getElementById('b_type').value=type;}
-  document.getElementById('buyModal').classList.add('open');setMode('buy');}
+function clearCta(){window.lastIntent=null;var cz=document.getElementById('ctazone');if(cz)cz.innerHTML='';}
+function openBuy(type,mode){if(needName())return;if(type){document.getElementById('b_type').value=type;}
+  document.getElementById('buyModal').classList.add('open');setMode(mode==='sell'?'sell':'buy');}
 function closeBuy(){document.getElementById('buyModal').classList.remove('open');}
 function ownedQty(t){return (window.lastRows||[]).filter(function(r){return r.type===t;}).reduce(function(s,r){return s+(+r.qty||0);},0);}
 function setMode(m){
   window.txnMode=m;
   document.getElementById('tabBuy').classList.toggle('active',m==='buy');
   document.getElementById('tabSell').classList.toggle('active',m==='sell');
-  document.getElementById('txnBtn').textContent=(m==='sell')?'Xác nhận bán':'Thanh toán';
+  document.getElementById('txnBtn').textContent='Xác nhận';
   var t=document.getElementById('b_type').value;
   if(m==='sell'){var av=ownedQty(t);document.getElementById('b_qty').value=av>0?Math.min(av,av):0.1;}
   else{document.getElementById('b_qty').value=0.1;}
@@ -1441,7 +1411,7 @@ function updModal(){
   var p=(window.lastPrices||{})[t]||{};
   if(window.txnMode==='sell'){
     var price=p.buy||0,av=ownedQty(t);
-    var warn=q>av?'<br><span style="color:#f87171">⚠ Vượt số đang có ('+fmt(av)+' lượng)</span>':'';
+    var warn=q>av?'<br><span style="color:#f87171">'+ic('warn')+' Vượt số đang có ('+fmt(av)+' lượng)</span>':'';
     document.getElementById('b_sum').innerHTML='Đang có: <b>'+fmt(av)+'</b> lượng · giá thanh khoản '+fmt(price)+'M/lượng<br>Nhận về: <b style="color:#4ade80;font-size:16px">'+fmt(price*q)+'M</b>'+warn;
   }else{
     var price=p.sell||0;
@@ -1456,13 +1426,13 @@ async function confirmTxn(){
     var av=ownedQty(t);
     if(q>av){alert('Bạn chỉ đang có '+fmt(av)+' lượng '+(((window.lastPrices||{})[t]||{}).label||t)+'. Không thể bán quá số lượng đang có.');return;}
     var price=p.buy||0;closeBuy();
-    setIns('<span class="muted">✅ Bán '+fmt(q)+' lượng thành công (giả lập). Nhận <b>'+fmt(price*q)+'M</b> về ví Zalopay. Đang cập nhật danh mục…</span>');
+    setIns('<span class="muted"><span style="color:#4ade80">'+ic('check')+'</span> Bán '+fmt(q)+' lượng thành công (giả lập). Nhận <b>'+fmt(price*q)+'M</b> về ví Zalopay. Đang cập nhật danh mục…</span>');
     var r=await api({action:'pf_sell',type:t,qty:q});render(r);autoInsight();
   }else{
     var price=p.sell||0;
     var dt=new Date(),ds=dt.getFullYear()+'-'+('0'+(dt.getMonth()+1)).slice(-2)+'-'+('0'+dt.getDate()).slice(-2);
     closeBuy();
-    setIns('<span class="muted">✅ Thanh toán <b>'+fmt(price*q)+'M</b> qua Zalopay thành công (giả lập). Đang thêm '+fmt(q)+' lượng vào danh mục…</span>');
+    setIns('<span class="muted"><span style="color:#4ade80">'+ic('check')+'</span> Thanh toán <b>'+fmt(price*q)+'M</b> qua Zalopay thành công (giả lập). Đang thêm '+fmt(q)+' lượng vào danh mục…</span>');
     var r=await api({action:'pf_add',holding:{type:t,qty:q,buy_price:price,buy_date:ds}});render(r);autoInsight();
   }
 }
@@ -1472,14 +1442,14 @@ function renderNews(items,replyText){
   // Chỉ hiện link bài báo khi nhận định AI thực sự nhắc tới tin tức/thị trường
   var relevant=replyText&&/tin tức|thị trường|phiên|thế giới|điều chỉnh|đỉnh|Fed|Mỹ|Iran/i.test(replyText);
   if(!items||!items.length||!relevant){el.innerHTML='';return;}
-  el.innerHTML='<details class="news-acc"><summary>📰 Tin Aurum đang tham khảo ('+items.length+')</summary>'+items.map(function(a){
+  el.innerHTML='<details class="news-acc"><summary>'+ic('news')+' Tin Aurum đang tham khảo ('+items.length+')</summary>'+items.map(function(a){
     return '<a class="nb-i" href="'+esc(a.link)+'" target="_blank" rel="noopener">'+esc(a.source)+': '+esc(a.title)+' ↗</a>';
   }).join('')+'</details>';
 }
 function needName(){if(!getUser()){openName();return true;}return false;}
 async function load(){
   if(!getUser()){
-    setIns('<span class="muted">👋 Nhập <b>tên của bạn</b> ở ô trên cùng để Aurum bắt đầu theo dõi tài sản vàng giúp bạn.</span>');
+    setIns('<span class="muted">Nhập <b>tên của bạn</b> ở ô trên cùng để Aurum bắt đầu theo dõi tài sản vàng giúp bạn.</span>');
     document.getElementById('mkt').innerHTML='<span class="mk-sub">Nhập tên để Aurum tải giá thị trường &amp; theo dõi danh mục cho bạn.</span>';
     render({rows:[],totals:{},holdings_raw:[]});
     openName();
@@ -1502,19 +1472,22 @@ async function confirmAdd(){
   closeAdd();
   if(np.note)showToast(np.note);
   var d=await api({action:'pf_add',holding:h});
-  if(d&&d.status==='error'){showToast('🤖 <b>Aurum:</b> '+(d.message||'Chưa thêm được tài sản, bạn thử lại giúp mình nhé.'));return;}
+  if(d&&d.status==='error'){showToast(ic('ai')+' <b>Aurum:</b> '+(d.message||'Chưa thêm được tài sản, bạn thử lại giúp mình nhé.'));return;}
   render(d);autoInsight();
 }
 async function delH(id){var d=await api({action:'pf_delete',id:id});render(d);autoInsight();}
 async function seedDemo(){if(needName())return;var d=await api({action:'pf_seed_demo'});render(d);autoInsight();}
 async function clearPortfolio(){if(needName())return;if(!(window.lastRows||[]).length){return;}if(!confirm('Xóa toàn bộ danh mục của bạn?'))return;var d=await api({action:'pf_clear'});render(d);autoInsight();}
 async function autoInsight(){
-  if(!(window.lastHoldings||[]).length){setIns('<span class="muted">👋 Chào bạn! Aurum sẽ theo dõi lời/lỗ tài sản vàng giúp bạn. Hãy bấm <b>"+ Thêm tài sản"</b> hoặc <b>"Dùng dữ liệu mẫu"</b> bên dưới để bắt đầu.</span>');renderNews([]);showActionCard('');return;}
+  if(!(window.lastHoldings||[]).length){setIns('<span class="muted">Chào bạn! Aurum sẽ theo dõi lời/lỗ tài sản vàng giúp bạn. Hãy bấm <b>"+ Thêm tài sản"</b> hoặc <b>"Dùng dữ liệu mẫu"</b> bên dưới để bắt đầu.</span>');renderNews([]);showActionCard('');return;}
   setIns('<span class="spin"></span> <span class="muted">Đang phân tích tài sản của bạn…</span>');
+  window.lastIntent=null;  // chu kỳ insight mới → chưa có intent → không hiện nút giao dịch
   var d=await api({action:'ai_insight',holdings:window.lastHoldings||[]});setIns(d.reply||'—');renderNews(d.news_items,d.reply);showActionCard(d.reply);
 }
 async function sendChat(forceMsg){
-  var m=((typeof forceMsg==='string'?forceMsg:'')||document.getElementById('chatmsg').value).trim();if(!m)return;
+  var fromBtn=(typeof forceMsg==='string');
+  if(!fromBtn)window.lastIntent=null;  // free chat (gõ tay) → không phải intent → không hiện nút giao dịch
+  var m=((fromBtn?forceMsg:'')||document.getElementById('chatmsg').value).trim();if(!m)return;
   setIns('<span class="spin"></span> <span class="muted">Aurum đang trả lời…</span>');
   document.getElementById('chatmsg').value='';
   var d=await api({action:'chat',message:m,holdings:window.lastHoldings||[]});setIns(d.reply||'—');renderNews(d.news_items,d.reply);showActionCard(d.reply);
