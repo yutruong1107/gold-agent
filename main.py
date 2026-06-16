@@ -30,7 +30,9 @@ OZ_PER_LUONG = 1.2057                                    # 1 lượng = 37.5g �
 HISTORY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "price_history.json")
 MEMORY_ID = os.environ.get("MEMORY_ID", "")
 MEMORY_NS = os.environ.get("MEMORY_NS", "")
-NEWS_KEYWORDS = ["giá vàng hôm nay", "vàng SJC", "giá vàng tăng giảm"]
+NEWS_KEYWORDS = ["giá vàng hôm nay"]  # 1 từ khóa: 3 từ cũ trùng nội dung → fetch RSS lặp 3 lần thừa
+_NEWS_CACHE = {"ts": 0.0, "items": []}  # cache tin ~10 phút: tránh fetch lại mỗi lượt insight/visit
+NEWS_TTL = 600
 
 # Chuỗi lịch sử ƯỚC LƯỢNG (triệu đồng/lượng) — nội suy từ diễn biến thị trường,
 # sẽ bị ghi đè dần bằng dữ liệu thật khi agent chạy mỗi ngày.
@@ -277,12 +279,15 @@ def build_series():
 
 def fetch_gold_news_diverse(limit: int = 3) -> list:
     """Tin giá vàng từ nhiều báo khác nhau (ưu tiên publisher riêng biệt) trong whitelist."""
+    import time
+    if _NEWS_CACHE["items"] and (time.time() - _NEWS_CACHE["ts"]) < NEWS_TTL:
+        return _NEWS_CACHE["items"][:limit]  # cache hit → khỏi fetch RSS, insight nhanh
     pool, seen_title = [], set()
     for kw in NEWS_KEYWORDS:
         try:
             url = f"https://news.google.com/rss/search?q={urllib.parse.quote(kw)}&hl=vi&gl=VN&ceid=VN:vi"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=6) as resp:
                 root = ET.fromstring(resp.read().decode("utf-8"))
             for item in root.findall(".//item")[:8]:
                 title = (item.findtext("title", "") or "").strip()
@@ -311,6 +316,9 @@ def fetch_gold_news_diverse(limit: int = 3) -> list:
             break
         if a not in out:
             out.append(a)
+    if out:  # chỉ cache khi fetch được (tránh cache rỗng do lỗi mạng)
+        _NEWS_CACHE["ts"] = time.time()
+        _NEWS_CACHE["items"] = out
     return out[:limit]
 
 
@@ -336,7 +344,7 @@ def fetch_gold_news() -> list:
         try:
             url = f"https://news.google.com/rss/search?q={urllib.parse.quote(kw)}&hl=vi&gl=VN&ceid=VN:vi"
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
+            with urllib.request.urlopen(req, timeout=6) as resp:
                 root = ET.fromstring(resp.read().decode("utf-8"))
             for item in root.findall(".//item")[:3]:
                 title = (item.findtext("title", "") or "").strip()
@@ -349,7 +357,6 @@ def fetch_gold_news() -> list:
                     "published": (item.findtext("pubDate", "") or "").strip(),
                     "source": (item.findtext("source", "") or "").strip(),
                 })
-                break
         except Exception:
             continue
     return articles[:3]
@@ -612,7 +619,7 @@ def ai_insight(summary: dict, question: str = "", user_name: str = "bạn", news
         return rule_insight(summary)
     try:
         from openai import OpenAI
-        client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL, timeout=45, max_retries=0)
+        client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL, timeout=18, max_retries=0)
         data = _ai_context(summary, user_name, news)
         if question:
             usr = (data + f"\n\nNgười dùng hỏi: \"{question}\"\n"
@@ -620,7 +627,7 @@ def ai_insight(summary: dict, question: str = "", user_name: str = "bạn", news
         else:
             usr = data + "\n\nHãy xuất câu nhận định chuẩn UX theo MẪU ĐẦU RA, dùng đúng dữ liệu trên."
         r = client.chat.completions.create(
-            model=LLM_MODEL, max_tokens=900,
+            model=LLM_MODEL, max_tokens=220,
             messages=[{"role": "system", "content": AI_SYSTEM}, {"role": "user", "content": usr}])
         msg = r.choices[0].message
         txt = (msg.content or "").strip() or (getattr(msg, "reasoning", "") or "").strip()
@@ -1147,6 +1154,8 @@ h1{font-size:22px;margin:0 0 2px}
 #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);max-width:88%;background:#15171e;border:1px solid #3a3520;border-left:3px solid #f5c542;border-radius:12px;padding:13px 16px;font-size:13px;color:#e7e9ee;line-height:1.5;box-shadow:0 14px 40px rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast b{color:#f5c542}
+.add-err{display:none;margin-top:14px;background:#1c2029;border-left:3px solid #f5c542;border-radius:10px;padding:11px 13px;font-size:13px;color:#e7e9ee;line-height:1.5}
+.add-err b{color:#f5c542}
 .login-box{max-width:400px;text-align:center}
 .login-logo{font-size:42px;line-height:1;margin-bottom:8px}
 .login-title{font-size:23px;font-weight:800;letter-spacing:.3px}
@@ -1260,6 +1269,7 @@ a.market{color:#5b9bd5;font-size:13px;text-decoration:none}
     <div><label class="ml">Giá mua (triệu đồng/lượng)</label><input id="f_price" type="number" step="0.1" placeholder="VD: 150"/><div class="giadinh" style="margin-top:5px">Nhập theo <b>triệu/lượng</b> — VD 150 triệu/lượng nhập <b>150</b>.</div></div>
     <div><label class="ml">Ngày mua (không bắt buộc)</label><input id="f_date" type="text" inputmode="numeric" placeholder="dd/mm/yyyy"/></div>
   </div>
+  <div id="addErr" class="add-err"></div>
   <div class="modal-act" style="margin-top:16px"><button class="btn ghost" onclick="closeAdd()">Hủy</button><button class="btn" onclick="confirmAdd()">Thêm vào danh mục</button></div>
 </div></div>
 
@@ -1477,20 +1487,22 @@ async function load(){
   }
   var d=await api({action:'pf_list'});render(d);autoInsight();
 }
-function openAdd(){if(needName())return;document.getElementById('f_qty').value='';document.getElementById('f_price').value='';document.getElementById('f_date').value='';document.getElementById('addModal').classList.add('open');}
+function setAddErr(html){var e=document.getElementById('addErr');if(!e)return;if(html){e.innerHTML=html;e.style.display='block';}else{e.style.display='none';e.innerHTML='';}}
+function openAdd(){if(needName())return;document.getElementById('f_qty').value='';document.getElementById('f_price').value='';document.getElementById('f_date').value='';setAddErr('');document.getElementById('addModal').classList.add('open');}
 function closeAdd(){document.getElementById('addModal').classList.remove('open');}
 function toISO(s){if(!s)return '';var p=String(s).trim().split('/');return p.length===3?(p[2]+'-'+('0'+p[1]).slice(-2)+'-'+('0'+p[0]).slice(-2)):'';}
 async function confirmAdd(){
+  setAddErr('');
   var qty=document.getElementById('f_qty').value;
   var np=normPrice(document.getElementById('f_price').value);
-  if(!qty||!np.v){alert('Vui lòng nhập số lượng và giá mua');return;}
-  if(np.v<10||np.v>1000){alert('Giá mua "'+fmt(np.v)+'" có vẻ không hợp lệ. Hãy nhập giá theo triệu đồng/lượng — VD: 150 nghĩa là 150 triệu/lượng.');return;}
+  if(!qty||!np.v){setAddErr('Bạn nhập giúp <b>số lượng</b> và <b>giá mua</b> nhé.');return;}
+  if(np.v<10||np.v>1000){setAddErr('Giá mua chưa hợp lệ — bạn nhập theo đơn vị <b>triệu/lượng</b> nhé. Ví dụ 150 triệu/lượng thì nhập <b>150</b>.');return;}
   var h={type:document.getElementById('f_type').value,qty:qty,
     buy_price:np.v,buy_date:toISO(document.getElementById('f_date').value)};
   closeAdd();
   if(np.note)showToast(np.note);
   var d=await api({action:'pf_add',holding:h});
-  if(d&&d.status==='error'){alert(d.message||'Không thêm được tài sản.');return;}
+  if(d&&d.status==='error'){showToast('🤖 <b>Aurum:</b> '+(d.message||'Chưa thêm được tài sản, bạn thử lại giúp mình nhé.'));return;}
   render(d);autoInsight();
 }
 async function delH(id){var d=await api({action:'pf_delete',id:id});render(d);autoInsight();}
