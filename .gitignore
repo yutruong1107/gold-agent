@@ -16,6 +16,10 @@ build/
 Live demo/
 *.mp4
 *.mov
+# Ảnh cá nhân + thumbnail nháp có mặt người — KHÔNG đẩy lên repo public
+me.png
+ui-*.png
+thumbnail-premium*
 *.log
 endpoint.txt
 price_history.json
