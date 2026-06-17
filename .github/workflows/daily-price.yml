@@ -6,7 +6,10 @@ name: daily-gold-price
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # 02:00 UTC = 09:00 giờ Việt Nam (Asia/Ho_Chi_Minh)
+    # GitHub hay TRỄ/BỎ scheduled run ở phút :00 (tranh tải). Dùng phút lẻ + 2 mốc cho chắc.
+    # Ghi giá idempotent (chỉ ghi nếu hôm nay chưa có) nên chạy nhiều mốc vô hại.
+    - cron: '17 1 * * *'   # ~08:17 giờ VN
+    - cron: '23 3 * * *'   # ~10:23 giờ VN
   workflow_dispatch:        # cho phép chạy tay để kiểm tra
 
 jobs:
