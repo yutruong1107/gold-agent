@@ -949,13 +949,24 @@ def _next_id(holdings: list) -> str:
     return str(n + 1)
 
 
+def _pf_key(payload: dict, user: str) -> str:
+    """Khóa danh mục = uid trình duyệt + hash tên → cùng máy đổi tên = danh mục riêng;
+    khác máy (uid khác) = cô lập; hai người TRÙNG TÊN ở 2 máy vẫn không đè nhau."""
+    uid = (payload.get("uid") or "").strip()
+    nm = (user or "guest").strip()
+    if not uid:
+        return nm  # client cũ chưa gửi uid → fallback theo tên
+    import hashlib
+    return f"{uid}-{hashlib.md5(nm.encode('utf-8')).hexdigest()[:8]}"
+
+
 @app.entrypoint
 def handler(payload: dict, context: RequestContext) -> dict:
     action = (payload.get("action") or "").lower()
     user = payload.get("user") or (getattr(context, "user_id", None) or "guest")
-    # Khóa lưu trữ danh mục = uid theo trình duyệt (tránh trùng tên → đè portfolio của nhau).
-    # Fallback về tên nếu client cũ chưa gửi uid. `user` (tên) vẫn dùng để cá nhân hóa AI.
-    pf_key = payload.get("uid") or user
+    # Khóa danh mục = uid trình duyệt + hash tên (xem _pf_key): đổi tên trên cùng máy = danh
+    # mục riêng, vẫn cô lập giữa các máy/người vote. `user` (tên) vẫn dùng để cá nhân hóa AI.
+    pf_key = _pf_key(payload, user)
 
     # ----- Portfolio actions (Gold Wealth Companion) -----
     if action == "pf_list":
