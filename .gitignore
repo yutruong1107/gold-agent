@@ -12,6 +12,10 @@ dist/
 build/
 
 # Dev scratch / runtime artifacts — không đưa lên repo công khai
+# Footage demo thô (chỉ để edit local, KHÔNG đẩy lên repo public)
+Live demo/
+*.mp4
+*.mov
 *.log
 endpoint.txt
 price_history.json
