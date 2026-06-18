@@ -20,6 +20,8 @@ Live demo/
 me.png
 ui-*.png
 thumbnail-premium*
+# Log mức sử dụng (scheduled task ghi local)
+usage-log.json
 *.log
 endpoint.txt
 price_history.json
